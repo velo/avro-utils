@@ -6,16 +6,20 @@ Provides a set of utilities for use with Avro:
 
 [HamCrest](http://hamcrest.org) matcher to assert Avro Specific objects, and use Avro with mocking frameworks such as Jmock and Mockito. Usage:
 
-```import static org.hamcrest.MatcherAssert.assertThat;
+```java
+import static org.hamcrest.MatcherAssert.assertThat;
 import static com.byhiras.avro.IsAvroObjectEqual.isAvroObjectEqualTo
 ...
-assertThat( actualResult, isAvroObjectEqualTo( expectedResult ));```
+assertThat( actualResult, isAvroObjectEqualTo( expectedResult ));
+```
 
 Or with expectations:
 
-```mockery.checking(new Expectations() {{
+```java
+mockery.checking(new Expectations() {{
    oneOf().myFunction( with(isAvroObjectEqualTo( expectedAvroObject )));
-}});```
+}});
+```
 
 ## License
 
