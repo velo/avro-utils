@@ -34,13 +34,16 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 public class IsAvroObjectEqualTest {
+   
+    /**
+     * Demonstrate typical usage.
+     */
     @Test
     public void checkEqualObjectsMatch() {
         Person johnSmith1 = johnSmith().build();
         Person johnSmith2 = johnSmith().build();
-
-        IsAvroObjectEqual<Person> matcher = new IsAvroObjectEqual<Person>(johnSmith1);
-        assertThat(johnSmith2, matcher);
+        
+        assertThat( johnSmith1, isAvroObjectEqualTo( johnSmith2 ));
     }
 
     @Test
@@ -122,6 +125,9 @@ public class IsAvroObjectEqualTest {
         assertThat(diagnosis.toString(), containsString(phrase));
     }
 
+    /**
+     * Curried test object
+     */
     private static Person.Builder johnSmith() {
         return Person.newBuilder()
                 .setFirstName("John")
