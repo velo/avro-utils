@@ -109,7 +109,9 @@ public class IsAvroObjectEqual<T extends SpecificRecord> extends TypeSafeDiagnos
 
     @SuppressWarnings("unchecked")
     private Matcher<?> createListMatcher(Schema schema, List<?> values, Set<String> exemptions) {
-        if ( schema.getType().equals( Type.RECORD )) {
+        if ( values.isEmpty() ) {
+            return new IsEqual(values);
+        } else if ( schema.getType().equals( Type.RECORD )) {
             return IsAvroIterableContaining.contains((List<? extends SpecificRecord>)values, exemptions );
         } else {
             final List<Matcher<?>> elementMatchers = Lists.newArrayList();
