@@ -4,6 +4,7 @@
 .springBeans
 */target/*
 target/*
+bin/*
 *.class
 */bin/*
 */.eclipse/*
