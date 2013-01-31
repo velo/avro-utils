@@ -21,6 +21,17 @@ mockery.checking(new Expectations() {{
 }});
 ```
 
+## IsAvroIterableContaining.java
+
+[HamCrest](http://hamcrest.org) matcher which takes an iterable of Avro objects and wraps them in IsAvoObjectEqualTo matchers. Also attempts to print out much more readable descriptions that pinpoint the item that is different. Usage:
+
+```java
+import static com.byhiras.avro.IsAvroIterableContaining.contains;
+...
+assertThat( actualList, contains( expectedList ));
+```
+
+
 ## License
 
 Copyright 2013 Byhiras (Europe) Limited
