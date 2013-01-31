@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
+import org.apache.avro.Schema.Type;
 import org.apache.avro.specific.SpecificData;
 import org.apache.avro.specific.SpecificRecord;
 import org.hamcrest.Description;
@@ -89,7 +90,7 @@ public class IsAvroObjectEqual<T extends SpecificRecord> extends TypeSafeDiagnos
             case MAP:
                 return new AvroMapMatcher(schema.getValueType(), (Map<String, ?>) value, exemptions);
             case ARRAY:
-                return createListMatcher(schema.getElementType(), (List<?>) value, exemptions);
+                return createListMatcher(schema.getElementType(), (List<? extends SpecificRecord>) value, exemptions);
             case DOUBLE:
                 return new IsCloseTo((Double) value, 1.0e-6);
             default:
@@ -106,16 +107,17 @@ public class IsAvroObjectEqual<T extends SpecificRecord> extends TypeSafeDiagnos
         }
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings("unchecked")
     private Matcher<?> createListMatcher(Schema schema, List<?> values, Set<String> exemptions) {
-        final List<Matcher<?>> elementMatchers = Lists.newArrayList();
-
-        for (Object value : values) {
-            elementMatchers.add(createMatcher(schema, value, exemptions));
+        if ( schema.getType().equals( Type.RECORD )) {
+            return IsAvroIterableContaining.contains((List<? extends SpecificRecord>)values, exemptions );
+        } else {
+            final List<Matcher<?>> elementMatchers = Lists.newArrayList();
+            for (Object value : values) {
+                elementMatchers.add(createMatcher(schema, value, exemptions));
+            }
+            return new IsIterableContainingInOrder(elementMatchers);
         }
-
-        // TODO: Write new order agnostic which is more adequately able to describe what is wrong
-        return new IsIterableContainingInOrder(elementMatchers);
     }
 
     @SuppressWarnings("rawtypes")
