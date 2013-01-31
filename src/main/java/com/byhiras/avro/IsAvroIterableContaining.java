@@ -129,4 +129,13 @@ public class IsAvroIterableContaining<E extends SpecificRecord> extends TypeSafe
         }
         return new IsAvroIterableContaining<E>(matchers);
     }
+    
+    @Factory
+    public static <E extends SpecificRecord> Matcher<Iterable<? extends E>> contains(Set<String> exemptions, E... items ) {
+        List<IsAvroObjectEqual<? super E>> matchers = new ArrayList<IsAvroObjectEqual<? super E>>();
+        for (E item : items) {
+            matchers.add( IsAvroObjectEqual.isAvroObjectEqualTo( item, exemptions ));
+        }
+        return new IsAvroIterableContaining<E>(matchers);
+    }
 }
