@@ -92,7 +92,7 @@ public class IsAvroObjectEqual<T extends SpecificRecord> extends TypeSafeDiagnos
             case ARRAY:
                 return createListMatcher(schema.getElementType(), (List<? extends SpecificRecord>) value, exemptions);
             case DOUBLE:
-                return new IsCloseTo((Double) value, 1.0e-6);
+                return createDoubleMatcher((Double)value);
             default:
                 return new IsEqual(value);
         }
@@ -107,7 +107,7 @@ public class IsAvroObjectEqual<T extends SpecificRecord> extends TypeSafeDiagnos
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private Matcher<?> createListMatcher(Schema schema, List<?> values, Set<String> exemptions) {
         if ( schema.getType().equals( Type.RECORD )) {
             return IsAvroIterableContaining.contains((List<? extends SpecificRecord>)values, exemptions );
@@ -149,6 +149,14 @@ public class IsAvroObjectEqual<T extends SpecificRecord> extends TypeSafeDiagnos
         // Below can happen if you don't use builders to create objects.
         Preconditions.checkNotNull(result, "Could not create Matcher. Was a non-nullable field left null? Schema: " + schema + " Value: " + value);
         return result;
+    }
+
+    private Matcher<?> createDoubleMatcher( Double value ) {
+        if (( value.isNaN()) || ( value.isInfinite())) {
+            return new IsEqual<Double>( value );
+        } else {
+            return new IsCloseTo( value, 1E-6D );
+        }
     }
 
     @Override

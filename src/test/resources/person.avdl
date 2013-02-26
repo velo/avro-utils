@@ -46,6 +46,7 @@ protocol People {
         union { null, string } title = null;
         
         union { null, long} age = null;
+        union { null, double} height = null;
 
         Gender gender;
 

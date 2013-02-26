@@ -58,11 +58,34 @@ public class IsAvroObjectEqualTest {
     @Test
     public void checkLongMismatchDetected() {
         Person expected = johnSmith().build();
-        Person actual = johnSmith().setAge(20L).build();
+        Person actual   = johnSmith().setAge(20L).build();
 
         assertMismatchedAndDiagnosisContains(expected, actual, "property \"age\"");
     }
 
+    @Test
+    public void checkDoubleEpsilonApplied() {
+        Person expected1 = johnSmith().setHeight( 20.000001D ).build();
+        Person expected2 = johnSmith().setHeight( 20.0000001D ).build();
+        Person actual = johnSmith().setHeight(20D).build();
+
+        assertMismatchedAndDiagnosisContains(expected1, actual, "property \"height\"");
+        assertThat( expected2, isAvroObjectEqualTo( actual ));
+    }
+    
+    @Test
+    public void checkDoubleInfinityAndNaNMatch() {
+        Person expected1 = johnSmith().setHeight( Double.NaN ).build();
+        Person actual1   = johnSmith().setHeight( Double.NaN ).build();
+
+        assertThat( expected1, isAvroObjectEqualTo( actual1 ));
+
+        Person expected2 = johnSmith().setHeight( Double.POSITIVE_INFINITY ).build();
+        Person actual2   = johnSmith().setHeight( Double.POSITIVE_INFINITY ).build();
+
+        assertThat( expected2, isAvroObjectEqualTo( actual2 ));
+    }
+    
     @Test
     public void checkListMemberMismatchDetected() {
         Person expected = johnSmith().setTelephoneNumbers(
