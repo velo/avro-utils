@@ -35,7 +35,7 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 public class IsAvroObjectEqualTest {
-   
+
     /**
      * Demonstrate typical usage.
      */
@@ -43,7 +43,7 @@ public class IsAvroObjectEqualTest {
     public void checkEqualObjectsMatch() {
         Person johnSmith1 = johnSmith().build();
         Person johnSmith2 = johnSmith().build();
-        
+
         assertThat( johnSmith1, isAvroObjectEqualTo( johnSmith2 ));
     }
 
@@ -95,15 +95,15 @@ public class IsAvroObjectEqualTest {
 
         assertMismatchedAndDiagnosisContains(expected, actual, "property \"digits\" was \"01235 56789\"");
     }
-    
-    
+
+
     @Test
     public void checkListsMismatchDetected() {
-        
+
         Person expected1 = johnSmith().build();
         Person expected2 = johnSmith().setFirstName( "Jim" ).build();
         List<Person> expected = Lists.newArrayList( expected1, expected2 );
-        
+
         Person actual1 = johnSmith().build();
         Person actual2 = johnSmith().setFirstName( "Jason" ).build();
         List<Person> actual = Lists.newArrayList( actual1, actual2 );
@@ -114,7 +114,7 @@ public class IsAvroObjectEqualTest {
 
         Description diagnosis = new StringDescription();
         matcher.describeMismatch(actual, diagnosis);
-        
+
         //assertThat( actual, (Matcher<List<Person>>)matcher );
         assertThat(diagnosis.toString(), containsString( "hasProperty(\"firstName\", \"Jim\") property \"firstName\" was \"Jason\"" ));
     }
@@ -160,6 +160,15 @@ public class IsAvroObjectEqualTest {
     public void checkHandlingOfNullChildRecord() throws Exception {
         Person person = new Person();
         assertThat(person, isAvroObjectEqualTo(person));
+    }
+
+    @Test
+    public void checkHandlingOfEmptyArray() {
+        Person person = johnSmith().setTelephoneNumbers(Collections.<PhoneNumber>emptyList()).build();
+        assertThat(person, isAvroObjectEqualTo(person));
+
+        Person personWithPhoneNumber = johnSmith().setTelephoneNumbers(buildPhoneNumbers(PhoneNumberType.TELEPHONE, "01234 56789")).build();
+        assertMismatchedAndDiagnosisContains(person, personWithPhoneNumber, "property \"telephoneNumbers\"");
     }
 
     private static <T extends SpecificRecord> void assertMismatchedAndDiagnosisContains(T expected, T actual, String phrase) {
