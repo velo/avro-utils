@@ -27,6 +27,14 @@
         <url>scm:git@github.com:Byhiras/avro-utils.git</url>
     </scm>
 
+    <distributionManagement>
+        <repository>
+            <id>nexus</id>
+            <name>My snapshots</name>
+            <url>${repo.local}</url>
+        </repository>
+    </distributionManagement>
+
     <properties>
         <maven.compiler.source>1.6</maven.compiler.source>
         <maven.compiler.target>1.6</maven.compiler.target>
