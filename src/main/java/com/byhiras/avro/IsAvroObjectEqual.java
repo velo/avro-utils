@@ -156,8 +156,10 @@ public class IsAvroObjectEqual<T extends SpecificRecord> extends TypeSafeDiagnos
     private Matcher<?> createDoubleMatcher( Double value ) {
         if (( value.isNaN()) || ( value.isInfinite())) {
             return new IsEqual<Double>( value );
+        } else if (value == 0.0) {
+            return new IsCloseTo( value, 1e-6 );
         } else {
-            return new IsCloseTo( value, 1E-6D );
+            return new IsCloseTo( value, Math.abs(value) * 1e-8 );
         }
     }
 
