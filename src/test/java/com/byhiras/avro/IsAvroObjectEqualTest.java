@@ -1,7 +1,7 @@
 package com.byhiras.avro;
 
 /**
- * Copyright 2013 Byhiras (Europe) Limited
+ * Copyright 2015 Byhiras (Europe) Limited
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -16,184 +16,404 @@ package com.byhiras.avro;
  *    limitations under the License.
  */
 
-import static com.byhiras.avro.IsAvroObjectEqual.isAvroObjectEqualTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.hamcrest.core.StringContains.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 
+import static com.byhiras.avro.IsAvroObjectEqual.avroObjectEqualTo;
+import static com.byhiras.avro.IsAvroObjectEqual.isAvroObjectEqualTo;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.avro.specific.SpecificRecord;
-import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
+import org.jmock.Expectations;
+import org.jmock.auto.Mock;
+import org.jmock.integration.junit4.JUnitRuleMockery;
+import org.jmock.lib.concurrent.Synchroniser;
+import org.jmock.lib.legacy.ClassImposteriser;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
+import com.byhiras.avro.AvroMatchers.Excluder;
+import com.byhiras.avro.AvroMatchers.Options;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
+@SuppressWarnings("ConstantConditions")
 public class IsAvroObjectEqualTest {
 
+    @Rule
+    public final JUnitRuleMockery mockery = new JUnitRuleMockery() {
+        {
+            setImposteriser(ClassImposteriser.INSTANCE);
+            setThreadingPolicy(new Synchroniser());
+        }
+    };
+
+    @Mock
+    private Matcher<?> customMatcher;
+
+    private Person expected;
+    private Person actual;
+
+    @SuppressWarnings("unchecked")
+    @Before
+    public void before() throws IOException {
+        expected = johnSmith().build();
+        actual = johnSmith().build();
+    }
+
+    @Test
+    public void testMatchedRecord() {
+        assertThat(actual, not(sameInstance(expected)));
+        assertThat(actual, avroObjectEqualTo(expected));
+    }
+
+    @Test
+    public void testMismatchedField() {
+        actual.setFirstName("James");
+
+        Matcher<?> matcher = avroObjectEqualTo(expected);
+
+        assertMismatchedAndDescriptionEqualTo(matcher, "firstName Expected: \"John\" but: was \"James\"");
+    }
+
+    @Test
+    public void testMismatchedSubField() {
+        actual.getAddress().setCounty("Somerset");
+
+        Matcher<?> matcher = avroObjectEqualTo(expected);
+
+        assertMismatchedAndDescriptionEqualTo(matcher, "address.county Expected: \"Buckinghamshire\" but: was \"Somerset\"");
+    }
+
+    @Test
+    public void testNullSubRecord() {
+        actual.setAddress(null);
+
+        Matcher<?> matcher = avroObjectEqualTo(expected);
+
+        assertMismatchedAndDescriptionEqualTo(matcher, "address was null");
+    }
+
+    @Test
+    public void testNullSubMap() {
+        actual.setFamilyMembers(null);
+
+        Matcher<?> matcher = avroObjectEqualTo(expected);
+
+        assertMismatchedAndDescriptionEqualTo(matcher, "familyMembers was null");
+    }
+
+    @Test
+    public void testTwoMismatchedSubFields() {
+        actual.getAddress().setFirstLine("Low and Under");
+        actual.getAddress().setCounty("Somerset");
+
+        assertMismatchedAndDescriptionEqualTo("address.firstLine Expected: \"High and Over\" but: was \"Low and Under\"\naddress.county Expected: \"Buckinghamshire\" but: was \"Somerset\"");
+    }
+
+    @Test
+    public void testMismatchedMap_MissingKey() {
+        actual.getFamilyMembers().remove("Sister");
+
+        assertMismatchedAndDescriptionEqualTo("familyMembers.Sister Expected: \"Jane Smith\" but: was null");
+    }
+
+    @Test
+    public void testMismatchedMap_AddedKey() {
+        actual.getFamilyMembers().put("Brother", "James");
+
+        assertMismatchedAndDescriptionEqualTo("familyMembers had additional keys: [\"Brother\"]");
+    }
+
+    @Test
+    public void testMismatchedMap_DifferentValue() {
+        actual.getFamilyMembers().put("Sister", "Joan Smith");
+
+        assertMismatchedAndDescriptionEqualTo("familyMembers.Sister Expected: \"Jane Smith\" but: was \"Joan Smith\"");
+    }
+
+    @Test
+    public void testExclusion() {
+        actual.getAddress().setCounty("Somerset");
+
+        Matcher<?> matcher = avroObjectEqualTo(expected, new Options()
+                .setExcluder(new Excluder() {
+                    @Override
+                    public boolean isExcluded(Object record, List<String> path) {
+                        return ImmutableList.of("address", "county").equals(path);
+                    }
+                }));
+        assertThat(matcher.matches(actual), is(true));
+    }
+
     /**
-     * Demonstrate typical usage.
+     * Test that exclusion ignores the entire subtree.
      */
     @Test
-    public void checkEqualObjectsMatch() {
-        Person johnSmith1 = johnSmith().build();
-        Person johnSmith2 = johnSmith().build();
+    public void testExclusion_Hierarchy() {
+        actual.getAddress().setCounty("Somerset");
 
-        assertThat( johnSmith1, isAvroObjectEqualTo( johnSmith2 ));
+        Matcher<?> matcher = avroObjectEqualTo(expected, new Options()
+                .setExcluder(new Excluder() {
+                    @Override
+                    public boolean isExcluded(Object record, List<String> path) {
+                        return ImmutableList.of("address").equals(path);
+                    }
+                }));
+        assertThat(matcher.matches(actual), is(true));
+    }
+
+    @Test
+    public void testCustomMatcher() {
+        actual.getAddress().setCountryId("FR");
+
+        mockery.checking(new Expectations() {{
+            oneOf(customMatcher).matches(actual.getAddress().getCountryId());
+            will(returnValue(true));
+        }});
+
+        Matcher<?> matcher = avroObjectEqualTo(expected, new Options()
+                .addCustomMatcher(ImmutableList.of("address", "countryId"), customMatcher));
+        assertThat(matcher.matches(actual), is(true));
+    }
+
+    @Test
+    public void testVerifyArrayOrder() {
+        actual.setTelephoneNumbers(buildPhoneNumbers(
+                PhoneNumberType.MOBILE, "07654",
+                PhoneNumberType.HOME, "12345",
+                PhoneNumberType.WORK, "23456"
+        ));
+
+        assertMismatchedAndDescriptionEqualTo("telephoneNumbers.0.type Expected: <HOME> but: was <MOBILE>\ntelephoneNumbers.0.digits Expected: \"12345\" but: was \"07654\"");
+    }
+
+    @Test
+    public void testVerifyArrayOrder_Missing() {
+        actual.setTelephoneNumbers(buildPhoneNumbers(
+                PhoneNumberType.HOME, "12345",
+                PhoneNumberType.WORK, "23456"
+        ));
+
+        assertMismatchedAndDescriptionEqualTo("telephoneNumbers.1.type Expected: <MOBILE> but: was <WORK>\ntelephoneNumbers.1.digits Expected: \"07654\" but: was \"23456\"");
+    }
+
+    @Test
+    public void testVerifyArrayOrder_Additional() {
+        actual.setTelephoneNumbers(buildPhoneNumbers(
+                PhoneNumberType.HOME, "12345",
+                PhoneNumberType.MOBILE, "07654",
+                PhoneNumberType.WORK, "23456",
+                PhoneNumberType.FAX, "67890"
+        ));
+
+        assertMismatchedAndDescriptionEqualTo("telephoneNumbers had additional indices: 3");
+    }
+
+    @Test
+    public void testVerifyArrayOrder_NullArray() {
+        actual.setTelephoneNumbers(null);
+
+        assertMismatchedAndDescriptionEqualTo("telephoneNumbers was null");
+    }
+
+    @Test
+    public void testIgnoreArrayOrder() {
+        actual.setTelephoneNumbers(buildPhoneNumbers(
+                PhoneNumberType.WORK, "23456",
+                PhoneNumberType.HOME, "12345",
+                PhoneNumberType.MOBILE, "07654"
+        ));
+
+        Matcher<?> matcher = avroObjectEqualTo(expected, new Options().setIgnoreArrayOrder(true));
+        assertThat(matcher.matches(actual), is(true));
+    }
+
+    @Test
+    public void testIgnoreArrayOrder_Additional() {
+        actual.setTelephoneNumbers(buildPhoneNumbers(
+                PhoneNumberType.WORK, "23456",
+                PhoneNumberType.HOME, "12345",
+                PhoneNumberType.FAX, "67890",
+                PhoneNumberType.MOBILE, "07654"
+        ));
+
+        Matcher<?> matcher = avroObjectEqualTo(expected, new Options().setIgnoreArrayOrder(true));
+
+        assertMismatchedAndDescriptionEqualTo(matcher, "telephoneNumbers Not matched: <{\"type\": \"FAX\", \"digits\": \"67890\"}>");
+    }
+
+    @Test
+    public void testIgnoreArrayOrder_Missing() {
+        actual.setTelephoneNumbers(buildPhoneNumbers(
+                PhoneNumberType.WORK, "23456",
+                PhoneNumberType.HOME, "12345"
+        ));
+
+        Matcher<?> matcher = avroObjectEqualTo(expected, new Options().setIgnoreArrayOrder(true));
+
+        assertMismatchedAndDescriptionEqualTo(matcher,
+                "telephoneNumbers No item matches: PhoneNumber: {\n  \"type\" : \"MOBILE\",\n  \"digits\" : \"07654\"\n} in [<{\"type\": \"WORK\", \"digits\": \"23456\"}>, <{\"type\": \"HOME\", \"digits\": \"12345\"}>]");
+    }
+
+    @Test
+    public void testIgnoreArrayOrder_NullArray() {
+        actual.setTelephoneNumbers(null);
+
+        Matcher<?> matcher = avroObjectEqualTo(expected, new Options().setIgnoreArrayOrder(true));
+
+        assertMismatchedAndDescriptionEqualTo(matcher, "telephoneNumbers was null");
     }
 
     @Test
     public void checkStringMismatchDetected() {
-        Person johnSmith = johnSmith().build();
-        Person johnHancock = johnSmith().setLastName("Hancock").build();
+        actual.setLastName("Hancock");
 
-        assertMismatchedAndDiagnosisContains(johnSmith, johnHancock, "property \"lastName\" was \"Hancock\"");
+        assertMismatchedAndDescriptionEqualTo("lastName Expected: \"Smith\" but: was \"Hancock\"");
     }
 
     @Test
     public void checkLongMismatchDetected() {
-        Person expected = johnSmith().build();
-        Person actual   = johnSmith().setAge(20L).build();
+        actual.setAge(20L);
 
-        assertMismatchedAndDiagnosisContains(expected, actual, "property \"age\"");
+        assertMismatchedAndDescriptionEqualTo("age Expected: <21L> but: was <20L>");
     }
 
     @Test
     public void checkDoubleEpsilonApplied() {
-        Person expected1 = johnSmith().setHeight( 20.000001D ).build();
-        Person expected2 = johnSmith().setHeight( 20.0000001D ).build();
-        Person actual = johnSmith().setHeight(20D).build();
+        expected.setHeight(20D);
+        actual.setHeight(20.000001D);
+        assertMismatchedAndDescriptionEqualTo("height Expected: a numeric value within <2.0E-7> of <20.0> but: <20.000001> differed by <8.000000010279564E-7>");
 
-        assertMismatchedAndDiagnosisContains(expected1, actual, "property \"height\"");
-        assertThat( expected2, isAvroObjectEqualTo( actual ));
+        Person actual2 = johnSmith().setHeight(20.0000001D).build();
+        assertThat(actual2, avroObjectEqualTo(expected));
     }
-    
+
     @Test
-    public void checkDoubleInfinityAndNaNMatch() {
-        Person expected1 = johnSmith().setHeight( Double.NaN ).build();
-        Person actual1   = johnSmith().setHeight( Double.NaN ).build();
+    public void checkDoubleInfinityMatch() {
+        expected.setHeight(Double.POSITIVE_INFINITY);
+        actual.setHeight(Double.POSITIVE_INFINITY);
 
-        assertThat( expected1, isAvroObjectEqualTo( actual1 ));
-
-        Person expected2 = johnSmith().setHeight( Double.POSITIVE_INFINITY ).build();
-        Person actual2   = johnSmith().setHeight( Double.POSITIVE_INFINITY ).build();
-
-        assertThat( expected2, isAvroObjectEqualTo( actual2 ));
+        assertThat(expected, avroObjectEqualTo(actual));
     }
-    
+
+    @Test
+    public void checkDoubleNaNMatch() {
+        expected.setHeight(Double.NaN);
+        actual.setHeight(Double.NaN);
+
+        assertThat(actual, avroObjectEqualTo(expected));
+    }
+
     @Test
     public void checkListMemberMismatchDetected() {
-        Person expected = johnSmith().setTelephoneNumbers(
-                buildPhoneNumbers(PhoneNumberType.TELEPHONE, "01234 56789")).build();
-        Person actual = johnSmith().setTelephoneNumbers(
-                buildPhoneNumbers(PhoneNumberType.TELEPHONE, "01235 56789")).build();
+        actual.getTelephoneNumbers().get(1).setDigits("01234 56789");
 
-        assertMismatchedAndDiagnosisContains(expected, actual, "property \"digits\" was \"01235 56789\"");
-    }
-
-
-    @Test
-    public void checkListsMismatchDetected() {
-
-        Person expected1 = johnSmith().build();
-        Person expected2 = johnSmith().setFirstName( "Jim" ).build();
-        List<Person> expected = Lists.newArrayList( expected1, expected2 );
-
-        Person actual1 = johnSmith().build();
-        Person actual2 = johnSmith().setFirstName( "Jason" ).build();
-        List<Person> actual = Lists.newArrayList( actual1, actual2 );
-
-        final Matcher<?> matcher = IsAvroIterableContaining.contains(expected);
-
-        assertThat(matcher.matches(actual), equalTo(false));
-
-        Description diagnosis = new StringDescription();
-        matcher.describeMismatch(actual, diagnosis);
-
-        //assertThat( actual, (Matcher<List<Person>>)matcher );
-        assertThat(diagnosis.toString(), containsString( "hasProperty(\"firstName\", \"Jim\") property \"firstName\" was \"Jason\"" ));
+        assertMismatchedAndDescriptionEqualTo("telephoneNumbers.1.digits Expected: \"07654\" but: was \"01234 56789\"");
     }
 
     @Test
-    public void checkMapMemberMismatchDetected() {
-        Person expected = johnSmith().build();
-        Map<String, String> expectedFamily = new HashMap<String, String>();
-        expectedFamily.put("mother", "Joan Smith");
-        expected.setFamilyMembers(expectedFamily);
+    public void checkEnforceNullMemberIsNull() {
+        actual.setAddress(null);
 
-        Person actual = johnSmith().build();
-        Map<String, String> actualFamily = new HashMap<String, String>();
-        actualFamily.put("mother", "Jane Smith");
-        actual.setFamilyMembers(actualFamily);
-
-        assertMismatchedAndDiagnosisContains(expected, actual, "property \"familyMembers\" key \"mother\" was \"Jane Smith\"");
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void checkExtraMapMemberDetected() {
-        Person expected = johnSmith().build();
-        expected.setFamilyMembers(Collections.EMPTY_MAP);
-
-        Person actual = johnSmith().build();
-        Map<String, String> actualFamily = new HashMap<String, String>();
-        actualFamily.put("mother", "Jane Smith");
-        actual.setFamilyMembers(actualFamily);
-
-        assertMismatchedAndDiagnosisContains(expected, actual, "property \"familyMembers\" got unexpected map entries: <[mother]>");
-    }
-
-    @Test
-    public void checkEnforceNullMemberIsNullWhenStrict() {
-        Person expected = johnSmith().build();
-        Person actual = johnSmith().setTelephoneNumbers(buildPhoneNumbers(PhoneNumberType.TELEPHONE, "01234 56789")).build();
-
-        assertMismatchedAndDiagnosisContains(expected, actual, "property \"telephoneNumbers\"");
+        assertMismatchedAndDescriptionEqualTo("address was null");
     }
 
     @Test
     public void checkHandlingOfNullChildRecord() throws Exception {
         Person person = new Person();
-        assertThat(person, isAvroObjectEqualTo(person));
+
+        assertThat(person, avroObjectEqualTo(person));
     }
 
     @Test
-    public void checkHandlingOfEmptyArray() {
-        Person person = johnSmith().setTelephoneNumbers(Collections.<PhoneNumber>emptyList()).build();
-        assertThat(person, isAvroObjectEqualTo(person));
+    public void checkActualEmptyArray() {
+        actual.setTelephoneNumbers(Collections.<PhoneNumber>emptyList());
 
-        Person personWithPhoneNumber = johnSmith().setTelephoneNumbers(buildPhoneNumbers(PhoneNumberType.TELEPHONE, "01234 56789")).build();
-        assertMismatchedAndDiagnosisContains(person, personWithPhoneNumber, "property \"telephoneNumbers\"");
+        assertThat(actual, avroObjectEqualTo(actual));
+
+        assertMismatchedAndDescriptionEqualTo("telephoneNumbers.0 was null");
     }
 
-    private static <T extends SpecificRecord> void assertMismatchedAndDiagnosisContains(T expected, T actual, String phrase) {
-        final IsAvroObjectEqual<T> matcher = new IsAvroObjectEqual<T>(expected);
+    @Test
+    public void checkExpectedEmptyArray() {
+        expected.setTelephoneNumbers(Collections.<PhoneNumber>emptyList());
 
-        assertThat(matcher.matches(actual), equalTo(false));
+        assertMismatchedAndDescriptionEqualTo("telephoneNumbers Expected: <[]> but: was <[{\"type\": \"HOME\", \"digits\": \"12345\"}, {\"type\": \"MOBILE\", \"digits\": \"07654\"}, {\"type\": \"WORK\", \"digits\": \"23456\"}]>");
+    }
 
-        Description diagnosis = new StringDescription();
-        matcher.describeMismatch(actual, diagnosis);
-        assertThat(diagnosis.toString(), containsString(phrase));
+    @SuppressWarnings("deprecation")
+    @Test
+    public void checkExemptions() {
+        actual.getAddress().setCountryId("DE");
+        actual.setAge(50L);
+
+        assertThat(actual, isAvroObjectEqualTo(expected, ImmutableSet.of("countryId", "age")));
+    }
+
+    private void assertMismatchedAndDescriptionEqualTo(Matcher<?> matcher, String description) {
+        assertThat(matcher.matches(actual), is(false));
+
+        StringDescription stringDescription = new StringDescription();
+        matcher.describeMismatch(actual, stringDescription);
+        assertThat(stringDescription.toString(), equalTo(description));
+    }
+
+    private void assertMismatchedAndDescriptionEqualTo(String description) {
+        assertMismatchedAndDescriptionEqualTo(avroObjectEqualTo(expected), description);
     }
 
     /**
      * Curried test object
      */
-    private static Person.Builder johnSmith() {
+    static Person.Builder johnSmith() {
+        Map<String, String> familyMembers = Maps.newHashMap();
+        familyMembers.put("Sister", "Jane Smith");
+
         return Person.newBuilder()
                 .setFirstName("John")
                 .setLastName("Smith")
                 .setTitle("Mr")
                 .setGender(Gender.MALE)
-                .setEmail("john.smith@acme.com");
+                .setAge(21L)
+                .setEmail("john.smith@acme.com")
+                .setAddress(Location.newBuilder()
+                        .setFirstLine("High and Over")
+                        .setSecondLine("Highover Park")
+                        .setThirdLine("Amersham")
+                        .setCounty("Buckinghamshire")
+                        .setPostCode("HP7 0BP")
+                        .build())
+                .setTelephoneNumbers(buildPhoneNumbers(
+                        PhoneNumberType.HOME, "12345",
+                        PhoneNumberType.MOBILE, "07654",
+                        PhoneNumberType.WORK, "23456"
+
+                ))
+                .setFamilyMembers(familyMembers);
     }
 
-    private static List<PhoneNumber> buildPhoneNumbers(PhoneNumberType type, String digits) {
-        return Lists.newArrayList(PhoneNumber.newBuilder().setType(type).setDigits(digits).build());
+    static List<PhoneNumber> buildPhoneNumbers(Object... phoneNumberFields) {
+        checkArgument(phoneNumberFields.length % 2 == 0, "Must have an even number of phoneNumberFields");
+        List<PhoneNumber> phoneNumbers = Lists.newArrayList();
+        for (int i = 0; i < phoneNumberFields.length; i += 2) {
+            phoneNumbers.add(PhoneNumber.newBuilder()
+                    .setType((PhoneNumberType) phoneNumberFields[i])
+                    .setDigits((String) phoneNumberFields[i + 1])
+                    .build());
+        }
+        return phoneNumbers;
     }
 }

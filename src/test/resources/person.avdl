@@ -1,7 +1,7 @@
 @namespace("com.byhiras.avro")
 
 /**
- * Copyright 2013 Byhiras (Europe) Limited
+ * Copyright 2015 Byhiras (Europe) Limited
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ protocol People {
     }
 
     enum PhoneNumberType {
-        TELEPHONE, MOBILE, FAX
+        HOME, WORK, MOBILE, FAX
     }
 
     record PhoneNumber {
@@ -53,7 +53,7 @@ protocol People {
         union { null, string } email = null;
         union { null, array<PhoneNumber> } telephoneNumbers = null;
 
-        union { null, string } addressId = null;
+        union { null, Location } address = null;
         
         union { null, map<string> } familyMembers = null;
     }
