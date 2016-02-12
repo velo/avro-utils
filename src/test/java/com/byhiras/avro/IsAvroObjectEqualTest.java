@@ -80,6 +80,15 @@ public class IsAvroObjectEqualTest {
     }
 
     @Test
+    public void testNullRecord() {
+        actual = null;
+
+        Matcher<?> matcher = avroObjectEqualTo(expected);
+
+        assertMismatchedAndDescriptionEqualTo(matcher, "was null");
+    }
+
+    @Test
     public void testMismatchedField() {
         actual.setFirstName("James");
 

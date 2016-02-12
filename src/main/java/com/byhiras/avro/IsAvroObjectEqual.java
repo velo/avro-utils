@@ -215,10 +215,14 @@ public class IsAvroObjectEqual {
         @Override
         public final void describeMismatch(Object item, Description mismatchDescription) {
             if (item == null || !expectedType.isInstance(item)) {
-                MismatchList mismatchList = MismatchList.checkArgumentIsMismatchList(mismatchDescription);
-                StringDescription stringDescription = new StringDescription();
-                super.describeMismatch(item, stringDescription);
-                mismatchList.addMismatch(objectPath, stringDescription.toString());
+                if (mismatchDescription instanceof MismatchList) {
+                    MismatchList mismatchList = MismatchList.checkArgumentIsMismatchList(mismatchDescription);
+                    StringDescription stringDescription = new StringDescription();
+                    super.describeMismatch(item, stringDescription);
+                    mismatchList.addMismatch(objectPath, stringDescription.toString());
+                } else {
+                    super.describeMismatch(item, mismatchDescription);
+                }
             } else {
                 matchesSafely((T) item, mismatchDescription);
             }
