@@ -21,7 +21,7 @@
 
   <groupId>com.marvinformatics</groupId>
   <artifactId>avro-utils</artifactId>
-  <version>0.7-SNAPSHOT</version>
+  <version>0.8</version>
   <packaging>jar</packaging>
   <name>Avro utilities</name>
   <description>Provides a set of utilities for use with Avro</description>
