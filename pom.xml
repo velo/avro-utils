@@ -24,6 +24,7 @@
   <version>0.7-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Avro utilities</name>
+  <description>Provides a set of utilities for use with Avro</description>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -404,6 +405,15 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+
+  <developers>
+    <developer>
+      <id>velo</id>
+      <name>Marvin Herman Froeder</name>
+      <email>velo br at gmail dot com</email>
+      <url>about.me/velo</url>
+    </developer>
+  </developers>
 
   <scm>
     <connection>scm:git@github.com:velo/avro-utils.git</connection>
