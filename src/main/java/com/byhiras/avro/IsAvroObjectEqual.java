@@ -100,15 +100,13 @@ public class IsAvroObjectEqual {
     private static <E extends IndexedRecord> Matcher<Iterable<? extends E>> contains(Collection<E> values, Options options,
             boolean rootIgnoreOrder) {
         if (values.isEmpty()) {
-            return Matchers.<Iterable<? extends E>>equalTo(values);
+            return Matchers.<Iterable<? extends E>> equalTo(values);
         }
 
         final List<Matcher<? super E>> elementMatchers = (List) createElementMatchers(null, values,
-                ImmutableList.<String>of(), options, RECORD_MATCHER_FACTORY);
+                ImmutableList.<String> of(), options, RECORD_MATCHER_FACTORY);
         // ugly raw cast to get ListMatcher to match
-        return rootIgnoreOrder ?
-                new CollectionMatcher<E>(elementMatchers, ImmutableList.<String>of()) :
-                (Matcher) new ExternalListMatcher<E>(elementMatchers);
+        return rootIgnoreOrder ? new CollectionMatcher<E>(elementMatchers, ImmutableList.<String> of()) : (Matcher) new ExternalListMatcher<E>(elementMatchers);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -259,7 +257,7 @@ public class IsAvroObjectEqual {
          * @param options options
          */
         public AvroObjectMatcher(T object, Options options) {
-            this(object, Lists.<String>newArrayList(), options);
+            this(object, Lists.<String> newArrayList(), options);
         }
 
         /**
@@ -285,7 +283,7 @@ public class IsAvroObjectEqual {
             subMatchers = subMatcherBuilder.build();
         }
 
-        @SuppressWarnings({"unchecked", "ConstantConditions"})
+        @SuppressWarnings({ "unchecked", "ConstantConditions" })
         @Override
         public void describeTo(Description description) {
             // pretty up the output
@@ -538,7 +536,7 @@ public class IsAvroObjectEqual {
      */
     private static class ExternalListMatcher<E> extends ListMatcher<E> {
         public ExternalListMatcher(List<Matcher<? super E>> matchers) {
-            super(matchers, ImmutableList.<String>of());
+            super(matchers, ImmutableList.<String> of());
         }
 
         @Override
@@ -621,18 +619,18 @@ public class IsAvroObjectEqual {
                 return custom;
             }
             switch (schema.getType()) {
-                case RECORD:
-                    return createRecordMatcher((IndexedRecord) value, fieldPath, options);
-                case UNION:
-                    return createUnionMatcher(schema, value, fieldPath, options);
-                case MAP:
-                    return new AvroMapMatcher(schema.getValueType(), (Map<String, ?>) value, fieldPath, options);
-                case ARRAY:
-                    return createListMatcher(schema.getElementType(), (List<? extends IndexedRecord>) value, fieldPath, options);
-                case DOUBLE:
-                    return createDoubleMatcher((Double)value);
-                default:
-                    return equalTo(value);
+            case RECORD:
+                return createRecordMatcher((IndexedRecord) value, fieldPath, options);
+            case UNION:
+                return createUnionMatcher(schema, value, fieldPath, options);
+            case MAP:
+                return new AvroMapMatcher(schema.getValueType(), (Map<String, ?>) value, fieldPath, options);
+            case ARRAY:
+                return createListMatcher(schema.getElementType(), (List<? extends IndexedRecord>) value, fieldPath, options);
+            case DOUBLE:
+                return createDoubleMatcher((Double) value);
+            default:
+                return equalTo(value);
             }
         }
     };

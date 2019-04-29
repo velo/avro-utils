@@ -98,7 +98,7 @@ public class AvroMatcherIterableTest {
 
         Person actual1 = johnSmith().build();
         Person actual2 = johnSmith().setFirstName("Jim").build();
-        Iterable<Person> actual = Iterables.transform(Lists.newArrayList(actual1, actual2), Functions.<Person>identity());
+        Iterable<Person> actual = Iterables.transform(Lists.newArrayList(actual1, actual2), Functions.<Person> identity());
 
         final Matcher<?> matcher = avroContains(expected);
 
@@ -113,7 +113,7 @@ public class AvroMatcherIterableTest {
 
         Person actual1 = johnSmith().build();
         Person actual2 = johnSmith().setFirstName("James").build();
-        Iterable<Person> actual = Iterables.transform(Lists.newArrayList(actual1, actual2), Functions.<Person>identity());
+        Iterable<Person> actual = Iterables.transform(Lists.newArrayList(actual1, actual2), Functions.<Person> identity());
 
         final Matcher<?> matcher = avroContains(expected);
 
@@ -155,6 +155,7 @@ public class AvroMatcherIterableTest {
 
         Description diagnosis = new StringDescription();
         matcher.describeMismatch(actual, diagnosis);
-        assertThat(diagnosis.toString(), equalTo("Not matched: <{\"firstName\": \"Jason\", \"lastName\": \"Smith\", \"title\": \"Mr\", \"age\": 21, \"height\": null, \"gender\": \"MALE\", \"email\": \"john.smith@acme.com\", \"telephoneNumbers\": [{\"type\": \"HOME\", \"digits\": \"12345\"}, {\"type\": \"MOBILE\", \"digits\": \"07654\"}, {\"type\": \"WORK\", \"digits\": \"23456\"}], \"address\": {\"firstLine\": \"High and Over\", \"secondLine\": \"Highover Park\", \"thirdLine\": \"Amersham\", \"county\": \"Buckinghamshire\", \"postCode\": \"HP7 0BP\", \"countryId\": null}, \"familyMembers\": {\"Sister\": \"Jane Smith\"}}>"));
+        assertThat(diagnosis.toString(), equalTo(
+                "Not matched: <{\"firstName\": \"Jason\", \"lastName\": \"Smith\", \"title\": \"Mr\", \"age\": 21, \"height\": null, \"gender\": \"MALE\", \"email\": \"john.smith@acme.com\", \"telephoneNumbers\": [{\"type\": \"HOME\", \"digits\": \"12345\"}, {\"type\": \"MOBILE\", \"digits\": \"07654\"}, {\"type\": \"WORK\", \"digits\": \"23456\"}], \"address\": {\"firstLine\": \"High and Over\", \"secondLine\": \"Highover Park\", \"thirdLine\": \"Amersham\", \"county\": \"Buckinghamshire\", \"postCode\": \"HP7 0BP\", \"countryId\": null}, \"familyMembers\": {\"Sister\": \"Jane Smith\"}}>"));
     }
 }

@@ -188,10 +188,12 @@ public class IsAvroObjectEqualTest {
     public void testCustomMatcher() {
         actual.getAddress().setCountryId("FR");
 
-        mockery.checking(new Expectations() {{
-            oneOf(customMatcher).matches(actual.getAddress().getCountryId());
-            will(returnValue(true));
-        }});
+        mockery.checking(new Expectations() {
+            {
+                oneOf(customMatcher).matches(actual.getAddress().getCountryId());
+                will(returnValue(true));
+            }
+        });
 
         Matcher<?> matcher = avroObjectEqualTo(expected, new Options()
                 .addCustomMatcher(ImmutableList.of("address", "countryId"), customMatcher));
@@ -203,8 +205,7 @@ public class IsAvroObjectEqualTest {
         actual.setTelephoneNumbers(buildPhoneNumbers(
                 PhoneNumberType.MOBILE, "07654",
                 PhoneNumberType.HOME, "12345",
-                PhoneNumberType.WORK, "23456"
-        ));
+                PhoneNumberType.WORK, "23456"));
 
         assertMismatchedAndDescriptionEqualTo("telephoneNumbers.0.type Expected: <HOME> but: was <MOBILE>\ntelephoneNumbers.0.digits Expected: \"12345\" but: was \"07654\"");
     }
@@ -213,8 +214,7 @@ public class IsAvroObjectEqualTest {
     public void testVerifyArrayOrder_Missing() {
         actual.setTelephoneNumbers(buildPhoneNumbers(
                 PhoneNumberType.HOME, "12345",
-                PhoneNumberType.WORK, "23456"
-        ));
+                PhoneNumberType.WORK, "23456"));
 
         assertMismatchedAndDescriptionEqualTo("telephoneNumbers.1.type Expected: <MOBILE> but: was <WORK>\ntelephoneNumbers.1.digits Expected: \"07654\" but: was \"23456\"");
     }
@@ -225,8 +225,7 @@ public class IsAvroObjectEqualTest {
                 PhoneNumberType.HOME, "12345",
                 PhoneNumberType.MOBILE, "07654",
                 PhoneNumberType.WORK, "23456",
-                PhoneNumberType.FAX, "67890"
-        ));
+                PhoneNumberType.FAX, "67890"));
 
         assertMismatchedAndDescriptionEqualTo("telephoneNumbers had additional indices: 3");
     }
@@ -243,8 +242,7 @@ public class IsAvroObjectEqualTest {
         actual.setTelephoneNumbers(buildPhoneNumbers(
                 PhoneNumberType.WORK, "23456",
                 PhoneNumberType.HOME, "12345",
-                PhoneNumberType.MOBILE, "07654"
-        ));
+                PhoneNumberType.MOBILE, "07654"));
 
         Matcher<?> matcher = avroObjectEqualTo(expected, new Options().setIgnoreArrayOrder(true));
         assertThat(matcher.matches(actual), is(true));
@@ -256,8 +254,7 @@ public class IsAvroObjectEqualTest {
                 PhoneNumberType.WORK, "23456",
                 PhoneNumberType.HOME, "12345",
                 PhoneNumberType.FAX, "67890",
-                PhoneNumberType.MOBILE, "07654"
-        ));
+                PhoneNumberType.MOBILE, "07654"));
 
         Matcher<?> matcher = avroObjectEqualTo(expected, new Options().setIgnoreArrayOrder(true));
 
@@ -268,8 +265,7 @@ public class IsAvroObjectEqualTest {
     public void testIgnoreArrayOrder_Missing() {
         actual.setTelephoneNumbers(buildPhoneNumbers(
                 PhoneNumberType.WORK, "23456",
-                PhoneNumberType.HOME, "12345"
-        ));
+                PhoneNumberType.HOME, "12345"));
 
         Matcher<?> matcher = avroObjectEqualTo(expected, new Options().setIgnoreArrayOrder(true));
 
@@ -349,7 +345,7 @@ public class IsAvroObjectEqualTest {
 
     @Test
     public void checkActualEmptyArray() {
-        actual.setTelephoneNumbers(Collections.<PhoneNumber>emptyList());
+        actual.setTelephoneNumbers(Collections.<PhoneNumber> emptyList());
 
         assertThat(actual, avroObjectEqualTo(actual));
 
@@ -358,9 +354,10 @@ public class IsAvroObjectEqualTest {
 
     @Test
     public void checkExpectedEmptyArray() {
-        expected.setTelephoneNumbers(Collections.<PhoneNumber>emptyList());
+        expected.setTelephoneNumbers(Collections.<PhoneNumber> emptyList());
 
-        assertMismatchedAndDescriptionEqualTo("telephoneNumbers Expected: <[]> but: was <[{\"type\": \"HOME\", \"digits\": \"12345\"}, {\"type\": \"MOBILE\", \"digits\": \"07654\"}, {\"type\": \"WORK\", \"digits\": \"23456\"}]>");
+        assertMismatchedAndDescriptionEqualTo(
+                "telephoneNumbers Expected: <[]> but: was <[{\"type\": \"HOME\", \"digits\": \"12345\"}, {\"type\": \"MOBILE\", \"digits\": \"07654\"}, {\"type\": \"WORK\", \"digits\": \"23456\"}]>");
     }
 
     @SuppressWarnings("deprecation")

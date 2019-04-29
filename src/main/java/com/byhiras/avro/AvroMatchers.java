@@ -92,7 +92,8 @@ public class AvroMatchers {
         return new RecordFieldExcluder(ImmutableSet.copyOf(recordFields));
     }
 
-    private AvroMatchers() {}
+    private AvroMatchers() {
+    }
 
     private static final Excluder ALWAYS_FALSE = new Excluder() {
         @Override
